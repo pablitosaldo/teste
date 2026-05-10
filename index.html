@@ -3,141 +3,196 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Agente A3P | Catálogo e trilhas formativas</title>
+    <title>MentorIA Rede A3P</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">Rede A3P</p>
-        <h1>Agente de conteúdos socioambientais</h1>
-      </div>
-      <nav aria-label="Navegação principal">
-        <a href="#catalogo">Catálogo</a>
-        <a href="#avaliacao">Avaliação</a>
-      </nav>
-    </header>
-
-    <main>
-      <section class="workspace" aria-label="Agente conversacional">
-        <aside class="panel filters" aria-label="Filtros do catálogo">
-          <div class="panel-title">
-            <span aria-hidden="true">▦</span>
-            <h2>Filtros</h2>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M16 29S5 23 5 13C5 6 16 3 16 3s11 3 11 10c0 10-11 16-11 16Z" stroke="currentColor" stroke-width="2.5" fill="currentColor" fill-opacity=".12" />
+              <path d="M16 29V14M16 22l-6.5-6.5M16 17l6-6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" />
+              <circle cx="9.5" cy="15.5" r="2" fill="currentColor" />
+              <circle cx="22" cy="11" r="2" fill="currentColor" />
+              <circle cx="16" cy="14" r="2.5" fill="currentColor" />
+              <path d="M23 4l1 3.5 3.5 1-3.5 1-1 3.5-1-3.5-3.5-1 3.5-1Z" fill="currentColor" />
+            </svg>
           </div>
-
-          <label>
-            Eixo A3P
-            <select id="axisFilter">
-              <option value="">Todos os eixos</option>
-            </select>
-          </label>
-
-          <label>
-            Perfil
-            <select id="profileFilter">
-              <option value="iniciante">Iniciante</option>
-              <option value="gestor">Gestor público</option>
-              <option value="curador">Curador de conteúdo</option>
-              <option value="educador">Educador ou multiplicador</option>
-            </select>
-          </label>
-
-          <label>
-            Nível
-            <select id="levelFilter">
-              <option value="">Todos</option>
-              <option value="Básico">Básico</option>
-              <option value="Intermediário">Intermediário</option>
-              <option value="Avançado">Avançado</option>
-            </select>
-          </label>
-
-          <button id="trailButton" class="secondary" type="button">
-            <span aria-hidden="true">↗</span>
-            Gerar trilha
-          </button>
-
-          <div class="metric-grid" aria-label="Indicadores do catálogo">
-            <div>
-              <strong id="totalItems">0</strong>
-              <span>itens</span>
-            </div>
-            <div>
-              <strong id="avgQuality">0</strong>
-              <span>qualidade média</span>
-            </div>
+          <div>
+            <h1>MentorIA Rede A3P</h1>
+            <p>Responsabilidade socioambiental na Administração Pública</p>
           </div>
-        </aside>
+        </div>
 
-        <section class="chat panel" aria-label="Conversa com o agente">
-          <div id="messages" class="messages" aria-live="polite"></div>
-          <form id="chatForm" class="composer">
-            <input
-              id="questionInput"
-              type="text"
-              autocomplete="off"
-              placeholder="Ex.: montar trilha de compras sustentáveis para iniciantes"
-              aria-label="Pergunta para o agente"
-            />
-            <button type="submit" aria-label="Enviar pergunta">
-              <span aria-hidden="true">➜</span>
-            </button>
-          </form>
-          <div class="quick-actions" aria-label="Exemplos de tarefas">
-            <button type="button" data-prompt="Montar trilha de compras públicas sustentáveis para iniciantes">Compras sustentáveis</button>
-            <button type="button" data-prompt="Achar curso para gestão de resíduos">Gestão de resíduos</button>
-            <button type="button" data-prompt="Materiais para sensibilização sobre economia de energia">Economia de energia</button>
+        <nav class="tabs" aria-label="Áreas da aplicação">
+          <button class="tab-button" data-tab="chat" type="button">Chat</button>
+          <button class="tab-button" data-tab="catalog" type="button">Catálogo <span id="catalogBadge">0</span></button>
+          <button class="tab-button highlight" data-tab="suggest" type="button">Sugira conteúdo</button>
+          <button class="tab-button" data-tab="admin" type="button">Curadoria <span id="pendingBadge">0</span></button>
+          <button class="tab-button eval" data-tab="evaluate" type="button">Me avalie</button>
+        </nav>
+      </header>
+
+      <main class="app-main">
+        <section id="chatView" class="view chat-view" data-view="chat">
+          <div class="chat-scroll" id="chatMessages" aria-live="polite"></div>
+          <footer class="chat-footer">
+            <div class="recent-row" id="recentQueries"></div>
+            <form class="composer" id="chatForm">
+              <textarea id="chatInput" rows="1" placeholder="Pesquise ou interaja com a MentorIA..."></textarea>
+              <button type="submit" aria-label="Enviar">➜</button>
+            </form>
+          </footer>
+        </section>
+
+        <section id="catalogView" class="view catalog-view" data-view="catalog" hidden>
+          <div class="catalog-wrap">
+            <div class="stat-grid">
+              <article class="stat-card summary-card">
+                <div class="stat-icon">□</div>
+                <div>
+                  <span>Acesso público</span>
+                  <strong id="visibleTotal">0</strong>
+                </div>
+                <button id="downloadCsvButton" class="soft-button" type="button">Baixar catálogo</button>
+                <button id="toggleStudyButton" class="purple-button" type="button">Gerar trilha</button>
+              </article>
+              <article class="stat-card">
+                <h2>Formatos</h2>
+                <div class="chip-cloud" id="typeStats"></div>
+              </article>
+              <article class="stat-card">
+                <h2>Publicação por ano</h2>
+                <div class="year-bars" id="yearStats"></div>
+              </article>
+            </div>
+
+            <section class="study-panel" id="studyPanel" hidden>
+              <div>
+                <h2>Gerador de trilhas de estudo</h2>
+                <p>Digite um objetivo e a MentorIA organiza um roteiro usando os materiais filtrados no catálogo.</p>
+              </div>
+              <div class="study-form">
+                <input id="studyTopic" type="text" placeholder="Ex.: implementar logística reversa no órgão" />
+                <button id="generateStudyButton" type="button">Criar trilha</button>
+              </div>
+              <div id="studyResult" class="study-result"></div>
+            </section>
+
+            <div class="filter-bar">
+              <label class="search-field">
+                <span>⌕</span>
+                <input id="catalogSearch" type="search" placeholder="Pesquisar termo ou palavra-chave..." />
+              </label>
+              <select id="axisFilter" aria-label="Filtrar por eixo"></select>
+              <select id="authorFilter" aria-label="Filtrar por autor"></select>
+            </div>
+
+            <div class="trending-row" id="topKeywords"></div>
+            <div class="active-filters" id="activeFilters" hidden></div>
+            <div class="catalog-grid" id="catalogGrid"></div>
           </div>
         </section>
-      </section>
 
-      <section id="catalogo" class="catalog-section">
-        <div class="section-heading">
-          <p class="eyebrow">Base estruturada</p>
-          <h2>Catálogo inicial</h2>
-        </div>
-        <div id="catalogGrid" class="catalog-grid"></div>
-      </section>
+        <section id="suggestView" class="view split-view" data-view="suggest" hidden>
+          <div class="suggest-form panel-card">
+            <div class="sticky-title">
+              <div>
+                <h2>Catalogação colaborativa</h2>
+                <p>Preencha manualmente ou cole um link para a MentorIA estruturar a sugestão.</p>
+              </div>
+              <button id="submitSuggestionButton" type="button">Submeter</button>
+            </div>
 
-      <section id="avaliacao" class="evaluation">
-        <div class="section-heading">
-          <p class="eyebrow">Pesquisa aplicada</p>
-          <h2>Avaliação pós-uso</h2>
-        </div>
-        <form id="evaluationForm" class="evaluation-form">
-          <label>
-            Clareza das respostas
-            <input type="range" min="1" max="5" value="4" name="clareza" />
-          </label>
-          <label>
-            Relevância dos conteúdos
-            <input type="range" min="1" max="5" value="4" name="relevancia" />
-          </label>
-          <label>
-            Confiança nas fontes
-            <input type="range" min="1" max="5" value="4" name="confianca" />
-          </label>
-          <label>
-            Apoio ao desenvolvimento de competências
-            <input type="range" min="1" max="5" value="4" name="competencias" />
-          </label>
-          <label>
-            Observações qualitativas
-            <textarea name="observacoes" rows="4" placeholder="Registre dificuldades, usos práticos ou sugestões."></textarea>
-          </label>
-          <button class="secondary" type="submit">
-            <span aria-hidden="true">✓</span>
-            Registrar avaliação
-          </button>
-          <p id="evaluationResult" class="form-result" role="status"></p>
-        </form>
-      </section>
-    </main>
+            <div class="form-grid">
+              <label class="wide">Ligação / URL<input id="suggestUrl" type="url" placeholder="https://" /></label>
+              <label class="wide">Título<input id="suggestTitle" type="text" /></label>
+              <label>Autor / Instituição<input id="suggestAuthor" type="text" list="authorOptions" /></label>
+              <label>Ano<input id="suggestYear" type="number" min="1900" max="2100" /></label>
+              <fieldset class="wide">
+                <legend>Eixos A3P</legend>
+                <div id="suggestAxes" class="checkbox-grid"></div>
+              </fieldset>
+              <label class="wide">Competência a desenvolver<input id="suggestCompetence" type="text" list="competenceOptions" /></label>
+              <label>Tema<input id="suggestTheme" type="text" list="themeOptions" /></label>
+              <label>Tipo<select id="suggestType"></select></label>
+              <label>Nível<select id="suggestLevel"></select></label>
+              <label class="wide">Palavras-chave<input id="suggestKeywords" type="text" placeholder="Separe por vírgulas" /></label>
+              <label class="wide">Descrição<textarea id="suggestDescription" rows="5"></textarea></label>
+            </div>
+          </div>
 
-    <footer>
-      <span>Protótipo funcional para catalogação, recomendação e avaliação do agente A3P.</span>
-    </footer>
+          <aside class="assistant-panel">
+            <header>
+              <div class="small-logo">✦</div>
+              <div>
+                <h2>Assistente de preenchimento</h2>
+                <p>Descreva o material ou cole um link.</p>
+              </div>
+            </header>
+            <div class="mini-chat" id="suggestMessages"></div>
+            <form class="mini-composer" id="suggestChatForm">
+              <textarea id="suggestInput" rows="2" placeholder="Ex.: Leia este link e preencha os campos..."></textarea>
+              <button type="submit">➜</button>
+            </form>
+          </aside>
+        </section>
+
+        <section id="adminView" class="view split-view" data-view="admin" hidden>
+          <div class="admin-board">
+            <div class="admin-toolbar panel-card">
+              <div>
+                <h2>Painel de curadoria</h2>
+                <p>Revise pendências, importe planilhas e aprove conteúdos para o catálogo local.</p>
+              </div>
+              <div class="toolbar-actions">
+                <button id="syncSheetButton" class="soft-button" type="button">Sync planilha</button>
+                <button id="importButton" class="soft-button" type="button">Importar CSV</button>
+                <button id="adminDownloadButton" class="dark-button" type="button">Backup CSV</button>
+                <input id="fileInput" type="file" accept=".csv" hidden />
+              </div>
+            </div>
+            <div class="pending-summary" id="pendingSummary"></div>
+            <div class="pending-list" id="pendingList"></div>
+          </div>
+
+          <aside class="assistant-panel dark">
+            <header>
+              <div class="small-logo">✦</div>
+              <div>
+                <h2>Assistente de importação</h2>
+                <p>Comandos de curadoria local</p>
+              </div>
+            </header>
+            <div class="mini-chat" id="adminMessages"></div>
+            <form class="mini-composer" id="adminChatForm">
+              <textarea id="adminInput" rows="2" placeholder="Ex.: validar todas, resumo das pendências..."></textarea>
+              <button type="submit">➜</button>
+            </form>
+          </aside>
+        </section>
+
+        <section id="evaluateView" class="view evaluate-view" data-view="evaluate" hidden>
+          <div class="evaluation-card">
+            <header>
+              <div>
+                <h2>Avaliação - Pesquisa GESUNB/UnB</h2>
+                <p>Sua resposta ajuda a medir usabilidade, utilidade percebida e contribuição da MentorIA para o desenvolvimento de competências na Rede A3P.</p>
+                <a href="mailto:pablo.saldo@gmail.com">pablo.saldo@gmail.com</a>
+              </div>
+            </header>
+            <form id="evaluationForm" class="evaluation-form"></form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <datalist id="authorOptions"></datalist>
+    <datalist id="themeOptions"></datalist>
+    <datalist id="competenceOptions"></datalist>
+    <div id="tooltip" class="tooltip" hidden></div>
 
     <script src="app.js"></script>
   </body>

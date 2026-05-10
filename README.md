@@ -4,12 +4,13 @@ Protótipo web do agente conversacional descrito no projeto de pesquisa sobre ca
 
 ## O que está implementado
 
+- Interface em abas: Chat, Catálogo, Sugira conteúdo, Curadoria e Me avalie.
 - Catálogo inicial em `catalogo.json`, organizado por eixo, tema, competência, tipo de recurso e nível.
-- Conversa orientada por busca e recomendação, sem dependência de chave de API.
-- Geração de trilhas formativas por eixo e perfil.
-- Respostas com referências e links para fontes.
-- Ficha de catalogação assistida e checklist de qualidade.
-- Formulário de avaliação pós-uso com armazenamento local no navegador.
+- Chat orientado pelo catálogo, com links, recomendações e trilhas formativas.
+- Catálogo com busca, filtros, estatísticas por formato/ano, palavras-chave e download CSV.
+- Sugestão colaborativa de conteúdos com preenchimento assistido heurístico.
+- Painel de curadoria local para aprovar, rejeitar, importar CSV e sincronizar a planilha pública.
+- Avaliação pós-uso com itens de utilidade percebida e escala SUS.
 
 ## Teste local
 
