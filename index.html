@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agente A3P | Catálogo e trilhas formativas</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Rede A3P</p>
+        <h1>Agente de conteúdos socioambientais</h1>
+      </div>
+      <nav aria-label="Navegação principal">
+        <a href="#catalogo">Catálogo</a>
+        <a href="#avaliacao">Avaliação</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="workspace" aria-label="Agente conversacional">
+        <aside class="panel filters" aria-label="Filtros do catálogo">
+          <div class="panel-title">
+            <span aria-hidden="true">▦</span>
+            <h2>Filtros</h2>
+          </div>
+
+          <label>
+            Eixo A3P
+            <select id="axisFilter">
+              <option value="">Todos os eixos</option>
+            </select>
+          </label>
+
+          <label>
+            Perfil
+            <select id="profileFilter">
+              <option value="iniciante">Iniciante</option>
+              <option value="gestor">Gestor público</option>
+              <option value="curador">Curador de conteúdo</option>
+              <option value="educador">Educador ou multiplicador</option>
+            </select>
+          </label>
+
+          <label>
+            Nível
+            <select id="levelFilter">
+              <option value="">Todos</option>
+              <option value="Básico">Básico</option>
+              <option value="Intermediário">Intermediário</option>
+              <option value="Avançado">Avançado</option>
+            </select>
+          </label>
+
+          <button id="trailButton" class="secondary" type="button">
+            <span aria-hidden="true">↗</span>
+            Gerar trilha
+          </button>
+
+          <div class="metric-grid" aria-label="Indicadores do catálogo">
+            <div>
+              <strong id="totalItems">0</strong>
+              <span>itens</span>
+            </div>
+            <div>
+              <strong id="avgQuality">0</strong>
+              <span>qualidade média</span>
+            </div>
+          </div>
+        </aside>
+
+        <section class="chat panel" aria-label="Conversa com o agente">
+          <div id="messages" class="messages" aria-live="polite"></div>
+          <form id="chatForm" class="composer">
+            <input
+              id="questionInput"
+              type="text"
+              autocomplete="off"
+              placeholder="Ex.: montar trilha de compras sustentáveis para iniciantes"
+              aria-label="Pergunta para o agente"
+            />
+            <button type="submit" aria-label="Enviar pergunta">
+              <span aria-hidden="true">➜</span>
+            </button>
+          </form>
+          <div class="quick-actions" aria-label="Exemplos de tarefas">
+            <button type="button" data-prompt="Montar trilha de compras públicas sustentáveis para iniciantes">Compras sustentáveis</button>
+            <button type="button" data-prompt="Achar curso para gestão de resíduos">Gestão de resíduos</button>
+            <button type="button" data-prompt="Materiais para sensibilização sobre economia de energia">Economia de energia</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="catalogo" class="catalog-section">
+        <div class="section-heading">
+          <p class="eyebrow">Base estruturada</p>
+          <h2>Catálogo inicial</h2>
+        </div>
+        <div id="catalogGrid" class="catalog-grid"></div>
+      </section>
+
+      <section id="avaliacao" class="evaluation">
+        <div class="section-heading">
+          <p class="eyebrow">Pesquisa aplicada</p>
+          <h2>Avaliação pós-uso</h2>
+        </div>
+        <form id="evaluationForm" class="evaluation-form">
+          <label>
+            Clareza das respostas
+            <input type="range" min="1" max="5" value="4" name="clareza" />
+          </label>
+          <label>
+            Relevância dos conteúdos
+            <input type="range" min="1" max="5" value="4" name="relevancia" />
+          </label>
+          <label>
+            Confiança nas fontes
+            <input type="range" min="1" max="5" value="4" name="confianca" />
+          </label>
+          <label>
+            Apoio ao desenvolvimento de competências
+            <input type="range" min="1" max="5" value="4" name="competencias" />
+          </label>
+          <label>
+            Observações qualitativas
+            <textarea name="observacoes" rows="4" placeholder="Registre dificuldades, usos práticos ou sugestões."></textarea>
+          </label>
+          <button class="secondary" type="submit">
+            <span aria-hidden="true">✓</span>
+            Registrar avaliação
+          </button>
+          <p id="evaluationResult" class="form-result" role="status"></p>
+        </form>
+      </section>
+    </main>
+
+    <footer>
+      <span>Protótipo funcional para catalogação, recomendação e avaliação do agente A3P.</span>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
