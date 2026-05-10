@@ -212,7 +212,7 @@ function bindEvents() {
     dom.chatInput.value = "";
     addRecentQuery(query);
     pushMessage("messages", "user", query);
-    setTimeout(() => pushMessage("messages", "bot", answerQuery(query)), 180);
+    handleChatReply(query);
   });
 
   dom.catalogSearch.addEventListener("input", () => {
@@ -333,7 +333,12 @@ function renderChat(collectionName, container) {
     link.addEventListener("mouseleave", hideTooltip);
   });
 
-  container.scrollTop = container.scrollHeight;
+  if (collectionName === "messages") {
+    const lastRow = container.querySelector(".message-row:last-child");
+    if (lastRow) lastRow.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    container.scrollTop = container.scrollHeight;
+  }
 }
 
 function renderCatalogControls() {
@@ -569,19 +574,19 @@ function applyFilters() {
 function answerQuery(query) {
   const lower = normalizeText(query);
   if (lower.includes("avali") || lower.includes("sus") || lower.includes("pesquisa")) {
-    return "Claro. A avaliação faz parte da pesquisa GESUNB/UnB e usa itens de utilidade percebida e SUS. Você pode responder agora em [Me avalie!](#evaluate). Em caso de dúvidas, o contato é **pablo.saldo@gmail.com**.";
+    return "A avaliação faz parte da pesquisa GESUNB/UnB e mede utilidade percebida e SUS. Você pode responder agora em [Me avalie!](#evaluate). Se precisar, também deixo o contato do pesquisador: **pablo.saldo@gmail.com**.";
   }
   if (lower.includes("suger") || lower.includes("indicar material") || lower.includes("novo conteudo")) {
-    return "Para sugerir um novo conteúdo, abra a aba **Sugira conteúdo**. Você pode colar o link, deixar campos vazios e pedir ajuda para estruturar a ficha de catalogação.";
+    return "Podemos fazer isso juntas. Abra a aba **Sugira conteúdo**, cole o link e eu monto uma ficha preliminar para você revisar antes de enviar para a curadoria.";
   }
   if (lower.includes("curadoria") || lower.includes("validar") || lower.includes("admin")) {
     setTimeout(() => setTab("admin"), 200);
-    return "Abrindo a área de **Curadoria**. Lá você pode importar CSV, revisar pendências e aprovar materiais para o catálogo.";
+    return "Estou abrindo a área de **Curadoria**. Lá você consegue importar CSV, revisar pendências e aprovar materiais para o catálogo local.";
   }
 
   const results = searchCatalog(query, 5);
   if (!results.length) {
-    return "Não encontrei uma correspondência forte no catálogo atual. Tente termos como **PLS**, **compras sustentáveis**, **gestão de resíduos**, **economia de energia** ou **educação socioambiental**.";
+    return "Ainda não encontrei uma correspondência forte no catálogo atual. Se você quiser refinar a conversa, tente um objetivo mais concreto como **PLS**, **compras sustentáveis**, **gestão de resíduos**, **economia de energia** ou **educação socioambiental**.";
   }
 
   const wantsTrail = /trilha|roteiro|aprendiz|estudo|formativa|sequencia/i.test(query);
@@ -589,10 +594,11 @@ function answerQuery(query) {
     return buildTrailMarkdown(query, results);
   }
 
-  return `Encontrei estes materiais mais aderentes ao que você pediu:\n\n${results
+  const intro = inferConversationalIntro(query, results);
+  return `${intro}\n\n${results
     .slice(0, 3)
     .map((item, index) => `${index + 1}. [${item.titulo}](${item.url})\n   **Por que ajuda:** ${item.descricao}`)
-    .join("\n\n")}\n\nSugestão prática: escolha um material, transforme em 3 ações aplicáveis ao seu órgão e registre uma evidência simples de acompanhamento.\n\nDepois da interação, sua avaliação ajuda muito: [Me avalie!](#evaluate).`;
+    .join("\n\n")}\n\nSe fizer sentido para o seu contexto, o melhor próximo passo é escolher um desses materiais e transformar a leitura em 3 ações aplicáveis ao órgão.\n\nSe quiser continuar a conversa, posso refinar por perfil, por eixo da A3P ou por tipo de material. Depois da interação, sua avaliação ajuda muito: [Me avalie!](#evaluate).`;
 }
 
 function searchCatalog(query, limit = 5) {
@@ -622,11 +628,78 @@ function buildTrailMarkdown(topic, items) {
     .join("\n\n")}\n\n**Tarefa final:** sintetize uma ação de curto prazo, uma ação de médio prazo e um indicador para acompanhar resultado.`;
 }
 
+function inferConversationalIntro(query, results) {
+  const first = results[0];
+  const lower = normalizeText(query);
+  if (lower.includes("como")) {
+    return `Você está tentando entender um caminho de ação, então priorizei materiais que ajudam a sair da dúvida para a aplicação prática. O mais promissor de partida é [${first.titulo}](${first.url}).`;
+  }
+  if (lower.includes("curso") || lower.includes("capacita")) {
+    return "Puxei materiais com cara mais formativa, pensando em algo que ajude estudo e multiplicação interna.";
+  }
+  return "Separei o que parece mais aderente ao que você pediu e tentei equilibrar referência normativa, aplicação prática e material de apoio.";
+}
+
+async function handleChatReply(query) {
+  await delay(180);
+  pushMessage("messages", "bot", answerQuery(query));
+}
+
 function generateStudyPath() {
   const topic = dom.studyTopic.value.trim();
   if (!topic) return;
   const items = searchCatalog(topic, 6);
   dom.studyResult.innerHTML = `<div class="plan-box">${markdown(items.length ? buildTrailMarkdown(topic, items) : answerQuery(topic))}</div>`;
+}
+
+async function inspectUrlDetailed(url, baseItem = {}) {
+  try {
+    const response = await fetch(`https://r.jina.ai/http://${stripProtocol(url)}`, { cache: "no-store" });
+    if (!response.ok) throw new Error("Falha ao ler espelho textual do link.");
+    const text = await response.text();
+    const extracted = extractStructuredContent(text, url, baseItem);
+    return {
+      ...baseItem,
+      ...extracted,
+      url,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function extractStructuredContent(text, url, baseItem = {}) {
+  const raw = String(text || "").replace(/\r/g, "");
+  const lines = raw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const nonMeta = lines.filter((line) => !/^url source:|^markdown content:|^title:/i.test(line));
+  const titleLine = lines.find((line) => /^title:/i.test(line));
+  const title = sanitizeSentence((titleLine ? titleLine.replace(/^title:\s*/i, "") : nonMeta[0]) || baseItem.titulo || titleFromUrl(url));
+  const bodyText = nonMeta.slice(0, 30).join(" ");
+  const description = buildDescriptionFromText(bodyText, title, baseItem);
+  const axis = inferAxesFromDetailedText(`${title} ${bodyText}`, baseItem.eixo || []);
+  const theme = inferThemeFromText(title, bodyText, axis[0]);
+  const competence = inferCompetenceFromText(bodyText, axis[0], baseItem.competencia);
+  const author = inferAuthorFromDetailedText(raw, url, baseItem.autor);
+  const type = inferType(`${title} ${bodyText}`);
+  const year = inferYearFromText(raw) || baseItem.ano || new Date().getFullYear();
+  const keywords = inferDetailedKeywords(title, bodyText, axis, baseItem.palavrasChave);
+  const level = inferLevelFromText(bodyText, type, baseItem.nivel);
+
+  return {
+    titulo: title || baseItem.titulo || "Material socioambiental sugerido",
+    autor: author,
+    ano: String(year),
+    tipo: type,
+    nivel: level,
+    eixo: axis.length ? axis : ["Educação Socioambiental"],
+    tema: theme,
+    competencia: competence,
+    palavrasChave: keywords.join(", "),
+    descricao: description,
+  };
 }
 
 function renderActionPlan(id) {
@@ -637,7 +710,7 @@ function renderActionPlan(id) {
   slot.innerHTML = `<div class="plan-box">${markdown(plan)}</div>`;
 }
 
-function handleSuggestionAssistant() {
+async function handleSuggestionAssistant() {
   const prompt = dom.suggestInput.value.trim();
   if (!prompt && !dom.suggestUrl.value.trim() && !dom.suggestTitle.value.trim()) return;
   pushMessage("suggestMessages", "user", prompt || "Preencha os campos a partir dos dados disponíveis.");
@@ -648,10 +721,21 @@ function handleSuggestionAssistant() {
 
   const inferred = inferItemFromText(`${prompt} ${dom.suggestTitle.value} ${url}`);
   fillSuggestionForm(inferred, false);
+  pushMessage("suggestMessages", "bot", url ? "Li o texto informado e comecei uma ficha preliminar. Agora vou tentar aprofundar a leitura do link para enriquecer resumo, tema, competência e palavras-chave." : "Montei uma ficha preliminar com base no texto informado. Revise os campos e, se quiser mais precisão, cole também o link da fonte.");
+
+  if (!url) return;
+
+  const enriched = await inspectUrlDetailed(url, inferred);
+  if (!enriched) {
+    pushMessage("suggestMessages", "bot", "Não consegui aprofundar a leitura remota desse link agora, mas mantive a ficha heurística pronta para revisão manual.");
+    return;
+  }
+
+  fillSuggestionForm(enriched, true);
   pushMessage(
     "suggestMessages",
     "bot",
-    "Estruturei uma ficha preliminar com base no texto informado. Revise título, autoria, eixo e competência antes de submeter para a curadoria."
+    `A leitura detalhada do link trouxe uma ficha mais rica. Atualizei **título**, **autoria**, **tema**, **competência**, **palavras-chave** e **descrição** para você revisar antes de submeter.`
   );
 }
 
@@ -716,7 +800,7 @@ function updatePendingField(id, field, value) {
   persistLocalState();
 }
 
-function autofillPending(id) {
+async function autofillPending(id) {
   const item = state.pending.find((candidate) => candidate.id === id);
   if (!item) return;
   const inferred = inferItemFromText([item.titulo, item.descricao, item.url, item.palavrasChave].join(" "));
@@ -727,6 +811,12 @@ function autofillPending(id) {
     autor: item.autor || inferred.autor,
     iaScore: "Preenchimento heurístico",
   });
+  if (item.url) {
+    const enriched = await inspectUrlDetailed(item.url, item);
+    if (enriched) {
+      Object.assign(item, enriched, { iaScore: "Leitura detalhada do link" });
+    }
+  }
   renderPending();
   persistLocalState();
 }
@@ -907,6 +997,85 @@ function inferItemFromText(text) {
 function inferKeywords(item) {
   const text = normalizeText([item.titulo, item.descricao, item.tema, Array.isArray(item.eixo) ? item.eixo.join(" ") : item.eixo].join(" "));
   return PREDEFINED_KEYWORDS.filter((keyword) => text.includes(normalizeText(keyword))).slice(0, 6);
+}
+
+function inferAxesFromDetailedText(titleAndBody, existingAxes = []) {
+  const clean = normalizeText(titleAndBody);
+  const scored = EIXOS_A3P.map((axis) => ({
+    axis,
+    score: axisKeywords(axis).reduce((sum, keyword) => sum + (clean.includes(keyword) ? 1 : 0), 0),
+  }))
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((entry) => entry.axis);
+  return unique([...(existingAxes || []), ...scored].map(mapAxisName).filter(Boolean)).slice(0, 2);
+}
+
+function inferThemeFromText(title, bodyText, fallbackAxis) {
+  const snippets = [title, ...bodyText.split(/[.!?]/).map((part) => part.trim()).filter(Boolean)];
+  const best = snippets.find((snippet) => snippet.length > 18 && snippet.length < 90);
+  return sanitizeSentence(best || fallbackAxis || "Tema a validar");
+}
+
+function inferCompetenceFromText(bodyText, axis, existingCompetence) {
+  if (existingCompetence && existingCompetence.trim()) return existingCompetence;
+  const clean = normalizeText(bodyText);
+  if (clean.includes("indicador") || clean.includes("monitor")) return "Monitorar indicadores e acompanhar a execução de ações socioambientais.";
+  if (clean.includes("capacita") || clean.includes("sensibil")) return "Mobilizar equipes e apoiar processos de educação socioambiental.";
+  if (clean.includes("licit") || clean.includes("contrat")) return "Aplicar critérios de sustentabilidade em compras e contratos.";
+  if (clean.includes("residuo") || clean.includes("coleta")) return "Implantar práticas de gestão de resíduos e orientar fluxos de destinação.";
+  return competenceForAxis(axis);
+}
+
+function inferAuthorFromDetailedText(rawText, url, existingAuthor) {
+  if (existingAuthor && existingAuthor.trim() && existingAuthor !== "Autor a validar") return existingAuthor;
+  const clean = normalizeText(rawText);
+  if (clean.includes("ministerio do meio ambiente")) return "Ministério do Meio Ambiente (MMA)";
+  if (clean.includes("escola nacional de administracao publica") || clean.includes("enap")) return "Escola Nacional de Adm. Pública (ENAP)";
+  if (clean.includes("tribunal de contas da uniao") || clean.includes("tcu")) return "Tribunal de Contas da União (TCU)";
+  if (clean.includes("tribunal superior eleitoral") || clean.includes("tse")) return "Tribunal Superior Eleitoral (TSE)";
+  if (clean.includes("gov br")) return hostInstitution(url);
+  return hostInstitution(url) || "Autor a validar";
+}
+
+function inferYearFromText(text) {
+  const years = String(text || "").match(/\b(19|20)\d{2}\b/g) || [];
+  const filtered = years.map(Number).filter((year) => year >= 1990 && year <= new Date().getFullYear() + 1);
+  return filtered[0] || "";
+}
+
+function inferDetailedKeywords(title, bodyText, axes, existingKeywords) {
+  const existing = splitKeywords(existingKeywords);
+  const text = normalizeText(`${title} ${bodyText}`);
+  const dynamic = PREDEFINED_KEYWORDS.filter((keyword) => text.includes(normalizeText(keyword)));
+  axes.forEach((axis) => {
+    axisKeywords(axis).forEach((keyword) => {
+      if (keyword.length > 3) dynamic.push(toTitleCase(keyword));
+    });
+  });
+  unique(title.split(/[-:|]/).map((part) => sanitizeSentence(part)).filter((part) => part.length > 10 && part.length < 40)).forEach((part) => {
+    if (!/administra|programa|agenda/i.test(part)) dynamic.push(part);
+  });
+  return unique([...existing, ...dynamic]).slice(0, 8);
+}
+
+function inferLevelFromText(bodyText, type, existingLevel) {
+  if (existingLevel && existingLevel.trim() && existingLevel !== "Básico") return existingLevel;
+  const clean = normalizeText(bodyText);
+  if (type === "Normativo" || clean.includes("diretriz") || clean.includes("regulament")) return "Intermediário";
+  if (clean.includes("metodologia") || clean.includes("indicador") || clean.includes("implementacao")) return "Intermediário";
+  if (clean.includes("pesquisa") || clean.includes("artigo cientifico") || clean.includes("analise")) return "Avançado";
+  return "Básico";
+}
+
+function buildDescriptionFromText(bodyText, title, baseItem) {
+  if (baseItem.descricao && baseItem.descricao.trim() && baseItem.descricao.length > 80) return sanitizeSentence(baseItem.descricao);
+  const sentences = bodyText
+    .split(/[.!?]/)
+    .map((part) => sanitizeSentence(part))
+    .filter((part) => part.length > 35);
+  const chosen = sentences.slice(0, 2).join(". ");
+  return chosen || `Conteúdo relacionado a ${sanitizeSentence(title).toLowerCase()} com potencial de apoio a práticas socioambientais na Administração Pública.`;
 }
 
 function axisKeywords(axis) {
@@ -1210,11 +1379,24 @@ function extractUrl(text) {
   return String(text || "").match(/https?:\/\/[^\s)]+/i)?.[0] || "";
 }
 
+function stripProtocol(url) {
+  return String(url || "").replace(/^https?:\/\//i, "");
+}
+
 function titleFromUrl(url) {
   if (!url) return "";
   try {
     const parsed = new URL(url);
     return parsed.hostname.replace(/^www\./, "") + parsed.pathname.replace(/[-_/]+/g, " ").slice(0, 60);
+  } catch {
+    return "";
+  }
+}
+
+function hostInstitution(url) {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return toTitleCase(host.replace(".gov.br", "").replace(".org.br", "").replace(/\./g, " "));
   } catch {
     return "";
   }
@@ -1235,6 +1417,27 @@ function toggleSet(set, value) {
 
 function formatTime(date) {
   return new Date(date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function sanitizeSentence(value) {
+  return String(value || "").replace(/\s+/g, " ").replace(/^[\W_]+|[\W_]+$/g, "").trim();
+}
+
+function toTitleCase(value) {
+  const small = new Set(["de", "da", "do", "das", "dos", "e", "em", "na", "no", "nas", "nos", "para", "por", "com"]);
+  return sanitizeSentence(value)
+    .toLowerCase()
+    .split(" ")
+    .map((word, index) => {
+      if (!word) return word;
+      if (index > 0 && small.has(word)) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function generateUniqueId() {
